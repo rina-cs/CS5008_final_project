@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Boyer-Moore Algorithm: LeetCode Solution</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+  <script src="https://unpkg.com/react@17/umd/react.development.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@17/umd/react-dom.development.js" crossorigin></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <style>
+    /* LeetCode-like syntax highlighting */
+    .code-keyword { color: #3333F2; }  /* Keywords like int, void, return */
+    .code-comment { color: #2E7D32; }  /* LeetCode green for comments */
+    .code-string { color: #D97706; }   /* String literals */
+    .code-function { color: #000000; } /* Function names */
+    .code-variable { color: #111827; } /* Variable names */
+    .code-operator { color: #374151; } /* Operators */
+    .code-number { color: #1D4ED8; }   /* Number literals */
+    .code-define { color: #8B008B; }   /* Preprocessor directives */
+    
+    /* LeetCode-like editor background */
+    .leetcode-editor {
+      background-color: #FFFFFF;
+      color: #111827;
+      border-radius: 0.375rem;
+      padding: 1rem;
+      font-family: 'Consolas', 'Monaco', 'Menlo', monospace;
+      line-height: 1.5;
+      overflow-x: auto;
+    }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+  
+  <script type="text/babel">
+    const BoyerMooreVisualization = () => {
+      const haystack = "ILOVECSANDCS5008";
+      const needle = "CS5008";
+      
+      const [step, setStep] = React.useState(0);
+      const [explanation, setExplanation] = React.useState('');
+      const [highlighted, setHighlighted] = React.useState({});
+      const [badCharTable, setBadCharTable] = React.useState({});
+      const [goodSuffixTable, setGoodSuffixTable] = React.useState([]);
+      const [currentPosition, setCurrentPosition] = React.useState(0);
+      const [activeRule, setActiveRule] = React.useState('');
+      
+      // Full LeetCode solution code
+      const fullSolution = `#include <stdio.h>
+#include <string.h>
+#include <stdlib.h>
+
+#define MAX(a, b) ((a) > (b) ? (a) : (b))
+// Build the bad character table for Boyer-Moore algorithm
+void buildBadCharTable(const char* pattern, int patternLen, int* badChar) {
+    int i;
+    // Initialize all occurrences as pattern length
+    for (i = 0; i < 256; i++) {
+        badChar[i] = patternLen;
+    }
+    // Fill the actual value of last occurrence of each character (except the last one)
+    for (i = 0; i < patternLen - 1; i++) {
+        badChar[(unsigned char)pattern[i]] = patternLen - 1 - i;
+    }
+}
+
+// Build the good suffix table for Boyer-Moore algorithm
+void buildGoodSuffixTable(const char* pattern, int patternLen, int* goodSuffix) {
+    int i, j;
+    int* suff = (int*)malloc(patternLen * sizeof(int));
+    // Case 1: Calculate the length of suffix that is also a prefix
+    suff[patternLen - 1] = patternLen;
+    for (i = patternLen - 2; i >= 0; i--) {
+        j = i;
+        while (j >= 0 && pattern[j] == pattern[patternLen - 1 - (i - j)])
+            j--;
+        suff[i] = i - j;
+    }
+    // Initialize the good suffix table with zeros
+    for (i = 0; i < patternLen; i++)
+        goodSuffix[i] = 0;  
+    // Case 2: Suffix pattern appears elsewhere
+    j = 0;
+    for (i = patternLen - 1; i >= 0; i--) {
+        if (suff[i] == i + 1) {  // If suffix is also a prefix
+            for (; j < patternLen - 1 - i; j++) {
+                if (goodSuffix[j] == 0)
+                    goodSuffix[j] = patternLen - 1 - i;
+            }
+        }
+    }
+    // Case 3: For patterns like ABCDAB where AB suffix of ABCDAB also appears in the pattern
+    for (i = 0; i <= patternLen - 2; i++) {
+        goodSuffix[patternLen - 1 - suff[i]] = patternLen - 1 - i;
+    }
+    free(suff);
+}
+
+// Boyer-Moore string matching algorithm implementation
+int boyerMooreSearch(const char* haystack, const char* needle) {
+    // Edge cases
+    if (!*needle)  // Empty needle
+        return 0;
+    int haystackLen = strlen(haystack);
+    int needleLen = strlen(needle);
+    if (needleLen > haystackLen)  // Needle longer than haystack
+        return -1;
+
+    // Preprocess the pattern
+    int badChar[256];
+    int* goodSuffix = (int*)malloc(needleLen * sizeof(int));
+    buildBadCharTable(needle, needleLen, badChar);
+    buildGoodSuffixTable(needle, needleLen, goodSuffix);
+    
+    // Start searching
+    int i = needleLen - 1;  // Start with the end of pattern aligned at position needleLen-1
+    while (i < haystackLen) {
+        int j = needleLen - 1;  // Start from the end of the pattern
+        int k = i;  // Current position in haystack
+        // Compare characters from right to left
+        while (j >= 0 && haystack[k] == needle[j]) {
+            k--;
+            j--;
+}
+        // If j < 0, we've found a match
+        if (j < 0) {
+            free(goodSuffix);
+            return k + 1;  // Return the starting position of the match
+        }
+        // Otherwise, shift using the maximum of bad character and good suffix rules
+        i += MAX(badChar[(unsigned char)haystack[k]], goodSuffix[j]);
+    }  
+    free(goodSuffix);
+    return -1;  // No match found
+}
+
+// Function to find first occurrence (LeetCode #28 implementation)
+int strStr(char* haystack, char* needle) {
+    return boyerMooreSearch(haystack, needle);
+}`;
+
+      // Helper function to format code with LeetCode-like syntax highlighting
+      const formatCode = (code) => {
+        // Simple regex-based syntax highlighting
+        return code
+          .replace(/(\/\/.*)/g, match => `<span class="code-comment">${match}</span>`) // Comments
+          .replace(/\b(int|char|void|return|if|else|while|for|const)\b/g, match => `<span class="code-keyword">${match}</span>`) // Keywords
+          .replace(/\b(buildBadCharTable|buildGoodSuffixTable|boyerMooreSearch|strStr|malloc|free|strlen)\b/g, match => `<span class="code-function">${match}</span>`) // Functions
+          .replace(/\b([0-9]+)\b/g, match => `<span class="code-number">${match}</span>`) // Numbers
+          .replace(/(\+=|-=|\+\+|--|==|!=|>=|<=|&&|\|\||\?|:)/g, match => `<span class="code-operator">${match}</span>`) // Operators
+          .replace(/(#include|#define)\b/g, match => `<span class="code-define">${match}</span>`); // Preprocessor
+      };
+      
+      const stepCodeMap = {
+        0: fullSolution.split('\n').slice(0, 45).join('\n'), // Preprocessing functions
+        1: fullSolution.split('\n').slice(51, 59).join('\n'), // First comparison
+        2: fullSolution.split('\n').slice(58, 63).join('\n'), // Bad Character Rule
+        3: fullSolution.split('\n').slice(28, 32).join('\n'), // Good Suffix Rule initialization
+        4: fullSolution.split('\n').slice(74, 79).join('\n'), // Maximum shift
+        5: fullSolution.split('\n').slice(58, 66).join('\n'), // After first shift
+        6: fullSolution.split('\n').slice(58, 63).join('\n'), // Second Bad Character Rule
+        7: fullSolution.split('\n').slice(28, 32).join('\n'), // Second Good Suffix Rule
+        8: fullSolution.split('\n').slice(74, 79).join('\n'), // Choose Maximum Again
+        9: fullSolution.split('\n').slice(58, 69).join('\n'), // After Second Shift
+        10: fullSolution.split('\n').slice(66, 70).join('\n'), // Continue Matching step 1
+        11: fullSolution.split('\n').slice(66, 70).join('\n'), // Continue Matching step 2
+        12: fullSolution.split('\n').slice(66, 70).join('\n'), // Continue Matching step 3
+        13: fullSolution.split('\n').slice(66, 70).join('\n'), // Continue Matching step 4
+        14: fullSolution.split('\n').slice(70, 79).join('\n'), // Final Match
+      };
+      
+      const steps = [
+        {
+          title: "Initialization and Preprocessing",
+          position: needle.length - 1,
+          highlighted: [],
+          activeRule: "preprocessing",
+          explanation: "Before searching, we preprocess the pattern 'CS5008' to build two tables:\n\n1. Bad Character Table:\n'C' → shift by 5\n'S' → shift by 4\n'5' → shift by 3\n'0' → shift by 2\n'0' → shift by 1\nAny other character → shift by 6\n\n2. Good Suffix Table:\nThis table helps when we have a suffix match but then a mismatch.\nWhen no suffix has been matched yet, the default shift is 0.\n\nWe start with the pattern 'CS5008' aligned at the beginning of the text."
+        },
+        {
+          title: "First Comparison",
+          position: needle.length - 1,
+          highlighted: [5],
+          activeRule: "none",
+          explanation: "We start by comparing the last character of the pattern with the corresponding character in the text.\n\nPattern[5] = '8', Text[5] = 'C'\nMismatch! Now we'll check which rule gives the larger shift."
+        },
+        {
+          title: "Apply Bad Character Rule",
+          position: needle.length - 1,
+          highlighted: [5],
+          activeRule: "bad",
+          explanation: "Using the Bad Character Rule:\n\nThe mismatched character is 'C'.\n'C' appears in our pattern at position 0.\nShift amount: 5"
+        },
+        {
+          title: "Apply Good Suffix Rule",
+          position: needle.length - 1,
+          highlighted: [5],
+          activeRule: "good",
+          explanation: "Using the Good Suffix Rule:\n\nWe have no matched suffix yet (this is our first comparison).\nIn this case, the Good Suffix rule gives a shift of 0.\nShift amount: 0"
+        },
+        {
+          title: "Choose Maximum Shift",
+          position: needle.length - 1,
+          highlighted: [5],
+          activeRule: "decision",
+          explanation: "Boyer-Moore always chooses the maximum of the two shifts:\n\nBad Character shift: 5\nGood Suffix shift: 0\n\nWe take the maximum: 5\nSo we'll shift the pattern by 5 positions."
+        },
+        {
+          title: "After First Shift",
+          position: needle.length - 1 + 5,
+          highlighted: [10],
+          activeRule: "none",
+          explanation: "After shifting by 5 positions, we're now at position 10.\n\nWe compare the last character of the pattern with the text:\nPattern[5] = '8', Text[10] = 'C'\nMismatch! We need to apply our rules again."
+        },
+        {
+          title: "Apply Second Bad Character Rule",
+          position: needle.length - 1 + 5,
+          highlighted: [10],
+          activeRule: "bad",
+          explanation: "Using the Bad Character Rule again:\n\nThe mismatched character is 'C'.\n'C' appears in our pattern at position 0.\nShift amount: 5"
+        },
+        {
+          title: "Apply Second Good Suffix Rule",
+          position: needle.length - 1 + 5,
+          highlighted: [10],
+          activeRule: "good",
+          explanation: "Using the Good Suffix Rule:\n\nStill no matched suffix.\nShift amount: 0"
+        },
+        {
+          title: "Choose Maximum Again",
+          position: needle.length - 1 + 5,
+          highlighted: [10],
+          activeRule: "decision",
+          explanation: "Comparing the shifts again:\n\nBad Character shift: 5\nGood Suffix shift: 0\n\nWe take maximum: 5\nWe'll shift by 5 more positions to position 15."
+        },
+        {
+          title: "After Second Shift",
+          position: needle.length - 1 + 10,
+          highlighted: [15],
+          activeRule: "none",
+          explanation: "After shifting by 5 more positions, we're now at position 15.\n\nWe compare the last character of the pattern with the text:\nPattern[5] = '8', Text[15] = '8'\nMatch! We continue comparing from right to left."
+        },
+        {
+          title: "Continue Matching",
+          position: needle.length - 1 + 10,
+          highlighted: [15, 14],
+          activeRule: "none",
+          explanation: "We continue comparing characters from right to left:\n\nPattern[4] = '0', Text[14] = '0'\nMatch! Continue comparing."
+        },
+        {
+          title: "Continue Matching",
+          position: needle.length - 1 + 10,
+          highlighted: [15, 14, 13],
+          activeRule: "none",
+          explanation: "We continue comparing:\n\nPattern[3] = '0', Text[13] = '0'\nMatch! Continue comparing."
+        },
+        {
+          title: "Continue Matching",
+          position: needle.length - 1 + 10,
+          highlighted: [15, 14, 13, 12],
+          activeRule: "none",
+          explanation: "Continue comparing:\n\nPattern[2] = '5', Text[12] = '5'\nMatch! Continue comparing."
+        },
+        {
+          title: "Continue Matching",
+          position: needle.length - 1 + 10,
+          highlighted: [15, 14, 13, 12, 11],
+          activeRule: "none",
+          explanation: "Continue comparing:\n\nPattern[1] = 'S', Text[11] = 'S'\nMatch! Continue comparing."
+        },
+        {
+          title: "Final Match",
+          position: needle.length - 1 + 10,
+          highlighted: [15, 14, 13, 12, 11, 10],
+          activeRule: "complete",
+          explanation: "Final comparison:\n\nPattern[0] = 'C', Text[10] = 'C'\nMatch!\n\nWe've found a complete match for 'CS5008' starting at position 10!"
+        }
+      ];
+      
+      React.useEffect(() => {
+        if (step < steps.length) {
+          setExplanation(steps[step].explanation);
+          setCurrentPosition(steps[step].position);
+          setActiveRule(steps[step].activeRule || 'none');
+          
+          const newHighlighted = {};
+          steps[step].highlighted.forEach(pos => {
+            newHighlighted[pos] = true;
+          });
+          setHighlighted(newHighlighted);
+        }
+      }, [step]);
+      
+      React.useEffect(() => {
+        // Initialize bad char table
+        const table = {};
+        for (let i = 0; i < needle.length - 1; i++) {
+          table[needle[i]] = needle.length - 1 - i;
+        }
+        // Default value for characters not in pattern
+        table["default"] = needle.length;
+        setBadCharTable(table);
+        
+        // Initialize good suffix table (using 0 as the default)
+        setGoodSuffixTable(Array(needle.length).fill(0));
+      }, []);
+      
+      const renderHaystack = () => {
+        return haystack.split('').map((char, index) => {
+          const isHighlighted = highlighted[index];
+          const isCurrentAlign = index >= currentPosition - needle.length + 1 && index <= currentPosition;
+          
+          return (
+            <span 
+              key={index}
+              className={`inline-block text-center font-mono w-8 h-8 mx-px border ${
+                isHighlighted ? 'bg-green-200 border-green-500' : 
+                isCurrentAlign ? 'bg-blue-100 border-blue-300' : 
+                'border-gray-300'
+              }`}
+            >
+              {char}
+              <div className="text-xs text-gray-500">{index}</div>
+            </span>
+          );
+        });
+      };
+      
+      const renderNeedle = () => {
+        const offset = currentPosition - needle.length + 1;
+        
+        return (
+          <div className="flex ml-px" style={{ marginLeft: `${offset * 34}px` }}>
+            {needle.split('').map((char, index) => (
+              <span 
+                key={index}
+                className={`inline-block text-center font-mono w-8 h-8 mx-px border border-red-300 ${
+                  highlighted[offset + index] ? 'bg-green-200' : 'bg-red-100'
+                }`}
+              >
+                {char}
+              </span>
+            ))}
+          </div>
+        );
+      };
+      
+      const renderBadCharTable = () => {
+        return (
+          <div className="mt-4 mb-2">
+            <div className="text-sm font-bold mb-1">Bad Character Table:</div>
+            <div className="flex flex-wrap">
+              {Object.entries(badCharTable).map(([char, shift], index) => (
+                <div key={index} className={`mr-4 mb-2 px-2 py-1 rounded ${activeRule === 'bad' ? 'bg-yellow-100 border border-yellow-500' : 'bg-gray-100'}`}>
+                  {char === "default" ? "other" : `'${char}'`}: shift {shift}
+                </div>
+              ))}
+            </div>
+          </div>
+        );
+      };
+      
+      const renderGoodSuffixTable = () => {
+        return (
+          <div className="mt-4 mb-2">
+            <div className="text-sm font-bold mb-1">Good Suffix Table:</div>
+            <div className={`px-2 py-1 rounded ${activeRule === 'good' ? 'bg-yellow-100 border border-yellow-500' : 'bg-gray-100'}`}>
+              Default shift: 0 (when no suffix matched)
+            </div>
+          </div>
+        );
+      };
+      
+      return (
+        <div className="p-4 max-w-4xl mx-auto">
+          <h2 className="text-xl font-bold mb-4">Boyer-Moore Visualization: Finding "{needle}" in "{haystack}"</h2>
+          
+          <div className="flex flex-col md:flex-row gap-4">
+            <div className="flex-1">
+              {renderBadCharTable()}
+            </div>
+            <div className="flex-1">
+              {renderGoodSuffixTable()}
+            </div>
+          </div>
+          
+          <div className="mb-4">
+            <h3 className="font-bold text-lg">{steps[step]?.title || "Visualization"}</h3>
+            <div className="my-6 overflow-x-auto">
+              <div className="whitespace-nowrap mb-4">
+                {renderHaystack()}
+              </div>
+              <div className="whitespace-nowrap">
+                {renderNeedle()}
+              </div>
+            </div>
+          </div>
+          
+          <div className="mb-4">
+            <div className="whitespace-pre-line bg-gray-50 p-4 rounded mb-4">
+              <div className="font-bold mb-2">Explanation:</div>
+              {explanation}
+            </div>
+            
+            <div className="leetcode-editor">
+              <div className="font-bold mb-2">C Code:</div>
+              <pre className="w-full" dangerouslySetInnerHTML={{ __html: formatCode(stepCodeMap[step] || "") }}></pre>
+            </div>
+          </div>
+          
+          <div className="flex justify-between mt-4">
+            <button 
+              onClick={() => setStep(Math.max(0, step - 1))}
+              disabled={step === 0}
+              className={`px-4 py-2 rounded ${step === 0 ? 'bg-gray-300' : 'bg-blue-500 text-white'}`}
+            >
+              Previous
+            </button>
+            <div className="text-center py-2">
+              Step {step + 1} of {steps.length}
+            </div>
+            <button 
+              onClick={() => setStep(Math.min(steps.length - 1, step + 1))}
+              disabled={step === steps.length - 1}
+              className={`px-4 py-2 rounded ${step === steps.length - 1 ? 'bg-gray-300' : 'bg-blue-500 text-white'}`}
+            >
+              Next
+            </button>
+          </div>
+          
+          <div className="mt-6 p-4 bg-gray-50 rounded-lg">
+            <h3 className="text-lg font-bold mb-2">Complete LeetCode Solution:</h3>
+            <div className="leetcode-editor mt-2">
+              <pre className="w-full" dangerouslySetInnerHTML={{ __html: formatCode(fullSolution) }}></pre>
+            </div>
+          </div>
+        </div>
+      );
+    };
+    
+    ReactDOM.render(<BoyerMooreVisualization />, document.getElementById('root'));
+  </script>
+</body>
+</html>
